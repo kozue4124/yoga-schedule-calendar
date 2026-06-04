@@ -430,11 +430,11 @@ function render(){
   // フッター
   if(footerText){
     ctx.fillStyle=th.text;
-    ctx.font='400 20px "Hiragino Sans",sans-serif';
+    ctx.font='400 30px "Hiragino Sans",sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
-    const fl=wrapLines(footerText.split('\n'), W-pad*2, 20);
-    const fy=gridTop+wdH+rows*cellH+24;
-    fl.forEach((ln,i)=>ctx.fillText(ln, W/2, fy+i*26));
+    const fl=wrapLines(footerText.split('\n'), W-pad*2, 30);
+    const fy=gridTop+wdH+rows*cellH+32;
+    fl.forEach((ln,i)=>ctx.fillText(ln, W/2, fy+i*38));
   }
 }
 
