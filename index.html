@@ -411,10 +411,16 @@ function render(){
         ctx.strokeStyle=hexA(cc,0.6); ctx.lineWidth=2;
         roundRect(x+11,yy+11,cellW-22,cellH-22,11);ctx.stroke();
 
-        // テキスト
+        // テキスト（最大幅に合わせてフォントサイズを自動調整）
         const lines=sessionsToLines(ev.sessions);
-        const fs=lines.length>=3?33:36;
+        const maxTextW=cellW-30; // 内枠の余白を確保
+        let fs=lines.length>=3?33:36;
+        const widest=lines.reduce((a,b)=>a.length>=b.length?a:b);
         ctx.font=`900 ${fs}px "Hiragino Sans",sans-serif`;
+        while(ctx.measureText(widest).width>maxTextW && fs>18){
+          fs--;
+          ctx.font=`900 ${fs}px "Hiragino Sans",sans-serif`;
+        }
         ctx.fillStyle=cc;
         ctx.textAlign='center';
         ctx.textBaseline='middle';
