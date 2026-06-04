@@ -227,28 +227,21 @@ const THEMES = [
   {name:'スカイ',     head:'#8fb6cc', accent:'#6fa3c0', soft:'#e8f1f6', text:'#3f4f5a', sun:'#cf8d86', sat:'#6f9fc0'},
   {name:'チャコール', head:'#6f6a64', accent:'#6f6a64', soft:'#eeece9', text:'#3a3631', sun:'#c98a84', sat:'#7e96c9'},
 ];
-const SESSIONS = ['終日','朝','午前','午後','夜'];
+const SESSIONS = ['終日','朝','AM','PM','夜'];
 
 function sessionsToLines(sessions){
   if(!sessions||sessions.length===0) return ['休み'];
-  const abbr={'朝':'朝','午前':'前','午後':'後','夜':'夜'};
   // 終日
   if(sessions.includes('終日')) return ['終日','休み'];
-  // 2行（中央寄せ）
+  // 1セッション → 2行
   if(sessions.length===1) return [sessions[0],'休み'];
   if(sessions.length===2){
-    // 1文字同士（朝・夜など）→ 2行
-    if(sessions.every(s=>s.length===1)) return [sessions.join('・'),'休み'];
-    // 2文字含む → 3行
-    return [sessions[0], sessions[1], '休み'];
+    // AM/PM含む or 1文字同士 → 1行にまとめて2行表示
+    return [sessions.join('・'),'休み'];
   }
-  // 3セッション：先頭2つを略称で1行に
+  // 3セッション → 3行（先頭2つを1行に）
   if(sessions.length===3){
-    return [
-      sessions.slice(0,2).map(s=>abbr[s]).join('・'),
-      abbr[sessions[2]],
-      '休み'
-    ];
+    return [sessions.slice(0,2).join('・'), sessions[2], '休み'];
   }
   return ['休み'];
 }
