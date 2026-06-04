@@ -58,6 +58,19 @@
   .hint{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
   canvas{box-shadow:0 6px 24px rgba(0,0,0,.12);border-radius:14px;background:#fff;max-width:100%;height:auto;cursor:pointer;}
 
+  /* 画像保存モーダル（モバイル用） */
+  .imgmodal{
+    background:#fff;border-radius:16px;padding:20px;width:92%;max-width:500px;
+    max-height:92vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+  }
+  .imgmodal img{max-width:100%;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.12);}
+  .save-hint{
+    font-size:14px;color:#fff;background:var(--accent);
+    padding:10px 16px;border-radius:10px;text-align:center;width:100%;margin:0;
+    line-height:1.6;font-weight:600;
+  }
+
   /* editor modal */
   .modal-bg{
     position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;
@@ -186,6 +199,15 @@
       <button class="btn ghost" id="clear-mob" style="width:100%">すべての予定をクリア</button>
       <p class="hint" style="text-align:center;margin-top:4px">入力内容は自動的にこのブラウザに保存されます。</p>
     </div>
+  </div>
+</div>
+
+<!-- 画像保存モーダル（モバイル用） -->
+<div class="modal-bg" id="imgmodalbg">
+  <div class="imgmodal">
+    <p class="save-hint">📱 画像を長押しして「写真に保存」してください</p>
+    <img id="preview-img" src="" alt="カレンダー画像">
+    <button class="btn ghost" id="imgmodal-close" style="width:100%">閉じる</button>
   </div>
 </div>
 
@@ -557,16 +579,26 @@ modalbg.onclick=e=>{if(e.target===modalbg)modalbg.classList.remove('show');};
 $('m-delete').onclick=()=>{ delete state.days[editDay]; modalbg.classList.remove('show'); render(); save(); };
 
 /* ============ ダウンロード ============ */
-$('download-mob').onclick=()=>$('download').click();
-$('clear-mob').onclick=()=>$('clear').click();
-$('download').onclick=()=>{
+function doDownload(){
   modalbg.classList.remove('show');
   render();
-  const a=document.createElement('a');
-  a.download=`schedule_${state.year}_${String(state.month).padStart(2,'0')}.png`;
-  a.href=cv.toDataURL('image/png');
-  a.click();
-};
+  const dataUrl=cv.toDataURL('image/png');
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
+    // モバイル：長押し保存モーダルを表示
+    $('preview-img').src=dataUrl;
+    $('imgmodalbg').classList.add('show');
+  } else {
+    const a=document.createElement('a');
+    a.download=`schedule_${state.year}_${String(state.month).padStart(2,'0')}.png`;
+    a.href=dataUrl;
+    a.click();
+  }
+}
+$('download').onclick=doDownload;
+$('download-mob').onclick=doDownload;
+$('clear-mob').onclick=()=>$('clear').click();
+$('imgmodal-close').onclick=()=>$('imgmodalbg').classList.remove('show');
+$('imgmodalbg').onclick=e=>{if(e.target===$('imgmodalbg'))$('imgmodalbg').classList.remove('show');};
 
 /* ============ 起動 ============ */
 syncInputs();
