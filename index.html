@@ -231,18 +231,20 @@ const SESSIONS = ['朝','午前','午後','夜'];
 
 function sessionsToLines(sessions){
   if(!sessions||sessions.length===0) return ['休み'];
+  const abbr={'朝':'朝','午前':'前','午後':'後','夜':'夜'};
+  // 2行（中央寄せ）
   if(sessions.length===4) return ['終日','休み'];
   if(sessions.length===1) return [sessions[0],'休み'];
-  const abbr={'朝':'朝','午前':'前','午後':'後','夜':'夜'};
+  // 3行
   if(sessions.length===2){
-    const total=sessions.reduce((n,s)=>n+s.length,0);
-    // 1文字同士（朝・夜など）→ そのまま1行
-    if(total<=3) return [sessions.join('・'),'休み'];
-    // 2文字含む（午前・午後など）→ 略称で1行
-    return [sessions.map(s=>abbr[s]).join('・'),'休み'];
+    return [sessions[0], sessions[1], '休み'];
   }
-  // 3セッション：略称で1行
-  return [sessions.map(s=>abbr[s]).join('・'),'休み'];
+  // 3セッション：先頭2つを略称で1行に
+  return [
+    sessions.slice(0,2).map(s=>abbr[s]).join('・'),
+    abbr[sessions[2]],
+    '休み'
+  ];
 }
 
 const today = new Date();
@@ -473,7 +475,7 @@ function drawStamp(cx, cy, size, lines, color, rot){
   // テキスト
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
-  const fs = size * (lines.length >= 3 ? 0.25 : lines.length === 2 ? 0.3 : 0.36);
+  const fs = size * (lines.length >= 3 ? 0.22 : lines.length === 2 ? 0.3 : 0.38);
   ctx.font = `900 ${fs}px "Hiragino Sans",sans-serif`;
   const lh = fs * 1.22;
   const startY = -((lines.length - 1) * lh) / 2;
