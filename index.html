@@ -420,12 +420,12 @@ function render(){
 
         // テキスト
         const lines=sessionsToLines(ev.sessions);
-        const fs=lines.length>=3?28:36;
+        const fs=lines.length>=3?33:36;
         ctx.font=`900 ${fs}px "Hiragino Sans",sans-serif`;
         ctx.fillStyle=cc;
         ctx.textAlign='center';
         ctx.textBaseline='middle';
-        const lh=fs*1.3;
+        const lh=fs*1.12;
         const textCY=yy+44+(cellH-54)/2;
         const startY=textCY-((lines.length-1)*lh)/2;
         lines.forEach((ln,i)=>ctx.fillText(ln,x+cellW/2,startY+i*lh));
