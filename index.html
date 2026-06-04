@@ -396,7 +396,7 @@ function render(){
       ctx.fillStyle = dow===0?th.sun : dow===6?th.sat : th.text;
       ctx.textAlign='left';
       ctx.textBaseline='top';
-      ctx.fillText(day, x+14, yy+12);
+      ctx.fillText(day, x+20, yy+16);
 
       if(ev && ev.sessions && ev.sessions.length>0){
         const cc=catColor();
