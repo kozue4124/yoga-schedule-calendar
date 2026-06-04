@@ -237,9 +237,9 @@ function sessionsToLines(sessions){
     // 2文字含む（午前・午後など）→ 3行
     return [sessions[0], sessions[1], '休み'];
   }
-  // 3セッション → 3行
+  // 3セッション → 3行（1つ目を1行目、2〜3つ目を2行目）
   if(sessions.length===3){
-    return [sessions.slice(0,2).join('・'), sessions[2], '休み'];
+    return [sessions[0], sessions.slice(1).join('・'), '休み'];
   }
   return ['休み'];
 }
