@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スケジュールカレンダー作成</title>
+<style>
+  :root{
+    --bg:#f6f3ef;
+    --panel:#ffffff;
+    --line:#e7e0d8;
+    --text:#4a4540;
+    --muted:#9b938a;
+    --accent:#d99a86;
+    --accent2:#b7c4a8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;font-family:"Hiragino Sans","ヒラギノ角ゴシック","Yu Gothic",sans-serif;
+    background:var(--bg);color:var(--text);
+  }
+  header{
+    padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;
+  }
+  header h1{font-size:18px;margin:0;font-weight:700;}
+  header .sub{font-size:12px;color:var(--muted);}
+  .wrap{
+    display:grid;grid-template-columns:380px 1fr;gap:0;
+    height:calc(100vh - 53px);
+  }
+  .controls{
+    padding:18px;overflow-y:auto;background:var(--panel);border-right:1px solid var(--line);
+  }
+  .preview{
+    padding:24px;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:16px;
+    background:var(--bg);
+  }
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  .row{display:flex;gap:8px;}
+  input[type=text],input[type=number],select,textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+    font-size:14px;font-family:inherit;color:var(--text);background:#fff;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);}
+  .btn{
+    border:none;border-radius:9px;padding:10px 14px;font-size:14px;font-weight:600;
+    cursor:pointer;font-family:inherit;transition:.15s;
+  }
+  .btn.primary{background:var(--accent);color:#fff;width:100%;font-size:15px;padding:13px;}
+  .btn.primary:hover{filter:brightness(1.05);}
+  .btn.ghost{background:#f1ece6;color:var(--text);}
+  .btn.ghost:hover{background:#e8e1d8;}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;}
+  .swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+  .swatch.on{border-color:#000;}
+  .hint{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
+  canvas{box-shadow:0 6px 24px rgba(0,0,0,.12);border-radius:14px;background:#fff;max-width:100%;height:auto;cursor:pointer;}
+
+  /* editor modal */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;
+    align-items:center;justify-content:center;z-index:50;padding:16px;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:#fff;border-radius:16px;padding:22px;width:380px;max-width:100%;max-height:90vh;overflow:auto;
+    box-shadow:0 10px 40px rgba(0,0,0,.25);
+  }
+  .modal h3{margin:0 0 4px;font-size:17px;}
+  .modal .day-label{color:var(--muted);font-size:13px;margin-bottom:16px;}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .preset{
+    border:1px solid var(--line);background:#faf7f3;border-radius:20px;padding:7px 12px;
+    font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;
+  }
+  .preset:hover{background:#f1ebe3;border-color:var(--accent);}
+  .iconrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .iconbtn{
+    width:42px;height:42px;font-size:22px;border:1px solid var(--line);border-radius:10px;
+    background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .iconbtn.on{border-color:var(--accent);background:#fcefe9;}
+  .modal-actions{display:flex;gap:8px;margin-top:8px;}
+  .modal-actions .btn{flex:1;}
+  .cat-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .cat-tag{padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer;border:2px solid transparent;color:#fff;font-weight:600;}
+  .cat-tag.off{opacity:.45;}
+  .divider{height:1px;background:var(--line);margin:16px 0;}
+  details summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight:600;margin-bottom:10px;}
+
+  /* ===== モバイル対応 ===== */
+  @media (max-width:700px){
+    header{padding:10px 14px;}
+    header h1{font-size:15px;}
+    header .sub{display:none;}
+    .wrap{
+      grid-template-columns:1fr;
+      grid-template-rows:auto auto;
+      height:auto;
+    }
+    .controls{
+      border-right:none;
+      border-bottom:1px solid var(--line);
+      height:auto;
+      overflow-y:visible;
+      padding:14px;
+    }
+    .preview{
+      padding:16px 12px 32px;
+      min-height:50vh;
+    }
+    .modal{padding:18px 16px;}
+    .swatches{gap:6px;}
+    .swatch{width:26px;height:26px;}
+    .preset{padding:8px 12px;font-size:14px;}
+    .btn.primary{font-size:14px;padding:12px;}
+    input[type=text],input[type=number],select,textarea{font-size:16px;} /* iOSズーム防止 */
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🗓️ スケジュールカレンダー作成</h1>
+  <span class="sub">予定を入力 → PNG画像で出力</span>
+</header>
+
+<div class="wrap">
+  <!-- 左：操作パネル -->
+  <div class="controls">
+    <div class="field">
+      <label>タイトル</label>
+      <input type="text" id="title" placeholder="例）5月 休講日のお知らせ">
+    </div>
+    <div class="field">
+      <label>年・月</label>
+      <div class="row">
+        <input type="number" id="year" style="flex:1.2">
+        <select id="month" style="flex:1"></select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>テーマカラー</label>
+      <div class="swatches" id="swatches"></div>
+    </div>
+
+    <div class="field">
+      <label>休講カラー</label>
+      <div class="swatches" id="sw-rest"></div>
+    </div>
+    <div class="field">
+      <label>レッスンカラー</label>
+      <div class="swatches" id="sw-lesson"></div>
+    </div>
+
+    <div class="divider" style="background:var(--line);height:1px;margin:18px 0;"></div>
+
+    <p class="hint" style="margin-top:0">
+      カレンダーの<b>日付をタップ</b>すると、その日の予定を入力できます。
+    </p>
+
+    <div class="field">
+      <label>フッターメモ（任意）</label>
+      <textarea id="footer" rows="2" placeholder="例）上記以外は通常通り開講しています。"></textarea>
+    </div>
+
+    <button class="btn primary" id="download">📥 PNG画像をダウンロード</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" id="clear" style="width:100%">すべての予定をクリア</button>
+    <p class="hint">入力内容は自動的にこのブラウザに保存されます。</p>
+  </div>
+
+  <!-- 右：プレビュー -->
+  <div class="preview">
+    <canvas id="cv"></canvas>
+  </div>
+</div>
+
+<!-- 日付エディタ -->
+<div class="modal-bg" id="modalbg">
+  <div class="modal">
+    <h3 id="m-title">予定を入力</h3>
+    <div class="day-label" id="m-daylabel"></div>
+
+    <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:8px;">カテゴリ</label>
+    <div class="cat-tags" id="m-cats"></div>
+
+    <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:8px;">スタンプを選んで追加</label>
+    <div class="presets" id="m-presets"></div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-delete">削除</button>
+      <button class="btn ghost" id="m-cancel">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ データ ============ */
+const WD = ['日','月','火','水','木','金','土'];
+const THEMES = [
+  {name:'テラコッタ', head:'#d99a86', accent:'#d99a86', soft:'#fbeee8', text:'#5b4a42', sun:'#d98a86', sat:'#86a7d9'},
+  {name:'セージ',     head:'#a7b894', accent:'#8fa57a', soft:'#eef2e7', text:'#4a5340', sun:'#cf8d7e', sat:'#7e9fcf'},
+  {name:'ラベンダー', head:'#b3a4cc', accent:'#9d8bc0', soft:'#efebf6', text:'#4d4660', sun:'#cf8d9e', sat:'#7e93cf'},
+  {name:'スカイ',     head:'#8fb6cc', accent:'#6fa3c0', soft:'#e8f1f6', text:'#3f4f5a', sun:'#cf8d86', sat:'#6f9fc0'},
+  {name:'チャコール', head:'#6f6a64', accent:'#6f6a64', soft:'#eeece9', text:'#3a3631', sun:'#c98a84', sat:'#7e96c9'},
+];
+const CATS = [
+  {key:'rest',   name:'休講',   color:'#d98a86'},
+  {key:'lesson', name:'レッスン',color:'#8fa57a'},
+];
+const PRESETS = {
+  rest: [
+    {t:'終日\n休み', i:'●'},
+    {t:'午前\n休み', i:'◐'},
+    {t:'午後\n休み', i:'◑'},
+    {t:'夕方\n休み', i:'◕'},
+    {t:'日中\n休み', i:'◎'},
+    {t:'お休み',    i:'✕'},
+  ],
+  lesson: [
+    {t:'朝\nのみ',  i:'◐'},
+    {t:'午前\nのみ',i:'○'},
+    {t:'お昼\nのみ',i:'●'},
+    {t:'午後\nのみ',i:'◑'},
+    {t:'夜\nのみ',  i:'◕'},
+  ],
+};
+
+const today = new Date();
+const curY = today.getFullYear(), curM = today.getMonth()+1;
+let state = load() || {
+  title: curM+'月 休講日のお知らせ',
+  year: curY,
+  month: curM,
+  theme:0,
+  footer:'',
+  days:{},
+  catColors:{rest:'#d98a86', lesson:'#8fa57a'}
+};
+if(!state.catColors) state.catColors={rest:'#d98a86', lesson:'#8fa57a'};
+
+/* ============ 永続化 ============ */
+function save(){ localStorage.setItem('schedCal', JSON.stringify(state)); }
+function load(){ try{return JSON.parse(localStorage.getItem('schedCal'));}catch(e){return null;} }
+
+/* ============ UI初期化 ============ */
+const $ = id => document.getElementById(id);
+
+// 月セレクト
+for(let m=1;m<=12;m++){
+  const o=document.createElement('option');o.value=m;o.textContent=m+'月';$('month').appendChild(o);
+}
+// テーマスウォッチ
+THEMES.forEach((th,i)=>{
+  const s=document.createElement('div');s.className='swatch';s.style.background=th.head;s.title=th.name;
+  s.onclick=()=>{state.theme=i;syncSwatches();render();save();};
+  $('swatches').appendChild(s);
+});
+function syncSwatches(){
+  [...$('swatches').children].forEach((el,i)=>el.classList.toggle('on',i===state.theme));
+}
+
+// カテゴリカラー
+const COLOR_PALETTE=[
+  '#d98a86','#e8a87c','#c4734d','#9e6b8a','#7a6bab','#5c8ab4',
+  '#8fa57a','#6aab9e','#c4a96b','#b4a07a','#6f6a64','#9ab4c4'
+];
+function catColor(key){ return state.catColors[key]||CATS.find(c=>c.key===key).color; }
+['rest','lesson'].forEach(key=>{
+  COLOR_PALETTE.forEach(col=>{
+    const s=document.createElement('div');s.className='swatch';
+    s.style.background=col;s.dataset.color=col;
+    s.onclick=()=>{ state.catColors[key]=col; syncCatColors(); render(); save(); };
+    $('sw-'+key).appendChild(s);
+  });
+});
+function syncCatColors(){
+  ['rest','lesson'].forEach(key=>{
+    const cur=catColor(key);
+    [...$('sw-'+key).children].forEach(s=>s.classList.toggle('on',s.dataset.color===cur));
+  });
+  [...$('m-cats').children].forEach(t=>t.style.background=catColor(t.dataset.key));
+}
+
+function syncInputs(){
+  $('title').value=state.title;
+  $('year').value=state.year;
+  $('month').value=state.month;
+  $('footer').value=state.footer||'';
+  syncSwatches();
+  syncCatColors();
+}
+$('title').oninput=e=>{state.title=e.target.value;render();save();};
+$('year').oninput=e=>{state.year=+e.target.value;render();save();};
+$('month').onchange=e=>{state.month=+e.target.value;render();save();};
+$('footer').oninput=e=>{state.footer=e.target.value;render();save();};
+$('clear').onclick=()=>{ if(confirm('すべての予定をクリアします。よろしいですか？')){state.days={};render();save();} };
+
+/* ============ カレンダー描画（Canvas） ============ */
+const cv=$('cv'), ctx=cv.getContext('2d');
+const SCALE=2;            // 高解像度
+const W=1080;             // 論理幅
+let cellRects=[];         // クリック判定用
+
+function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+function firstWeekday(y,m){return new Date(y,m-1,1).getDay();}
+
+function render(){
+  const th=THEMES[state.theme];
+  const y=state.year, m=state.month;
+  const dim=daysInMonth(y,m);
+  const fw=firstWeekday(y,m);
+  const rows=Math.ceil((fw+dim)/7);
+
+  const pad=44;
+  const headerH=120;
+  const wdH=60;
+  const gridTop=pad+headerH+12;
+  const cellW=(W-pad*2)/7;
+  const cellH=200;
+  const footerText=(state.footer||'').trim();
+  const footerH = footerText ? 70 : 0;
+  const H = gridTop + wdH + rows*cellH + pad + footerH;
+
+  cv.width=W*SCALE; cv.height=H*SCALE;
+  cv.style.width=Math.min(W,540)+'px';
+  ctx.setTransform(SCALE,0,0,SCALE,0,0);
+
+  // 背景
+  ctx.fillStyle='#ffffff';
+  roundRect(0,0,W,H,0);ctx.fill();
+
+  // ヘッダーバー
+  ctx.fillStyle=th.head;
+  roundRect(pad,pad,W-pad*2,headerH,20);ctx.fill();
+  ctx.fillStyle='#ffffff';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='700 40px "Hiragino Sans",sans-serif';
+  ctx.fillText(state.title||'', W/2, pad+headerH/2-12);
+  ctx.font='600 22px "Hiragino Sans",sans-serif';
+  ctx.fillStyle='rgba(255,255,255,.9)';
+  ctx.fillText(`${y} / ${String(m).padStart(2,'0')}`, W/2, pad+headerH-26);
+
+  // 曜日ヘッダー
+  ctx.textBaseline='middle';
+  for(let i=0;i<7;i++){
+    const x=pad+cellW*i;
+    ctx.fillStyle = i===0?th.sun : i===6?th.sat : th.text;
+    ctx.font='700 28px "Hiragino Sans",sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(WD[i], x+cellW/2, gridTop+wdH/2);
+  }
+
+  // グリッド
+  cellRects=[];
+  ctx.textBaseline='top';
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<7;c++){
+      const idx=r*7+c;
+      const day=idx-fw+1;
+      const x=pad+cellW*c;
+      const yy=gridTop+wdH+r*cellH;
+
+      // セル枠
+      ctx.fillStyle = (day<1||day>dim) ? '#faf8f6' : '#ffffff';
+      ctx.strokeStyle=th.soft; ctx.lineWidth=1.5;
+      roundRect(x+3,yy+3,cellW-6,cellH-6,12);
+      ctx.fill();ctx.stroke();
+
+      if(day<1||day>dim) continue;
+
+      cellRects.push({day,x:x+3,y:yy+3,w:cellW-6,h:cellH-6});
+
+      const dow=(fw+day-1)%7;
+      const ev=state.days[day];
+
+      // 日付番号
+      ctx.font='700 30px "Hiragino Sans",sans-serif';
+      ctx.fillStyle = dow===0?th.sun : dow===6?th.sat : th.text;
+      ctx.textAlign='left';
+      ctx.textBaseline='top';
+      ctx.fillText(day, x+14, yy+12);
+
+      if(ev && (ev.text!==undefined)){
+        const cat=CATS.find(k=>k.key===ev.cat)||CATS[0];
+        const cc=catColor(cat.key);
+        // カテゴリ名（右下）
+        ctx.font='600 19px "Hiragino Sans",sans-serif';
+        ctx.fillStyle=cc;
+        ctx.textAlign='right';
+        ctx.textBaseline='bottom';
+        ctx.fillText(cat.name, x+cellW-10, yy+cellH-10);
+        const lines=ev.text.split('\n').filter(l=>l.trim());
+        const cx=x+cellW/2, cy=yy+cellH/2+12;
+        const rot=(((day*37+13)%11)-5)*0.032;
+        drawStamp(cx, cy, cellW*0.66, lines, cc, rot);
+      }
+    }
+  }
+
+  // フッター
+  if(footerText){
+    ctx.fillStyle=th.text;
+    ctx.font='400 20px "Hiragino Sans",sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    const fl=wrapLines(footerText.split('\n'), W-pad*2, 20);
+    const fy=gridTop+wdH+rows*cellH+24;
+    fl.forEach((ln,i)=>ctx.fillText(ln, W/2, fy+i*26));
+  }
+}
+
+/* テキスト折返し（日本語：文字単位） */
+function wrapLines(rawLines, maxW, fontSize){
+  ctx.save();
+  ctx.font=`600 ${fontSize}px "Hiragino Sans",sans-serif`;
+  const out=[];
+  rawLines.forEach(raw=>{
+    let cur='';
+    for(const ch of raw){
+      if(ctx.measureText(cur+ch).width>maxW && cur){ out.push(cur); cur=ch; }
+      else cur+=ch;
+    }
+    out.push(cur);
+  });
+  ctx.restore();
+  return out;
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function hexA(hex,a){
+  const n=parseInt(hex.slice(1),16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+}
+
+/* 角印スタンプ描画（丸みあり） */
+function drawStamp(cx, cy, size, lines, color, rot){
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot);
+  ctx.globalAlpha = 0.84;
+  ctx.strokeStyle = color;
+  ctx.fillStyle   = color;
+
+  const h = size / 2;
+  const corner = size * 0.24; // 大きめの角丸でかわいく
+
+  // 外枠
+  ctx.lineWidth = 7;
+  stampRect(-h, -h, size, corner);
+  ctx.stroke();
+
+  // 内枠
+  const ins = 11;
+  ctx.lineWidth = 3;
+  stampRect(-h + ins, -h + ins, size - ins * 2, corner * 0.6);
+  ctx.stroke();
+
+  // テキスト
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  const fs = size * (lines.length > 1 ? 0.3 : 0.36);
+  ctx.font = `900 ${fs}px "Hiragino Sans",sans-serif`;
+  const lh = fs * 1.22;
+  const startY = -((lines.length - 1) * lh) / 2;
+  lines.forEach((ln, i) => ctx.fillText(ln, 0, startY + i * lh));
+
+  ctx.restore();
+}
+
+function stampRect(x, y, s, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + s, y,     x + s, y + s, r);
+  ctx.arcTo(x + s, y + s, x,     y + s, r);
+  ctx.arcTo(x,     y + s, x,     y,     r);
+  ctx.arcTo(x,     y,     x + s, y,     r);
+  ctx.closePath();
+}
+
+/* ============ クリック → エディタ ============ */
+cv.addEventListener('click', e=>{
+  const rect=cv.getBoundingClientRect();
+  const sx=(W)/rect.width;
+  const px=(e.clientX-rect.left)*sx;
+  const py=(e.clientY-rect.top)*sx;
+  const hit=cellRects.find(c=>px>=c.x&&px<=c.x+c.w&&py>=c.y&&py<=c.y+c.h);
+  if(hit) openEditor(hit.day);
+});
+
+/* ============ エディタ ============ */
+let editDay=null;
+const modalbg=$('modalbg');
+
+// カテゴリ
+CATS.forEach(cat=>{
+  const t=document.createElement('div');t.className='cat-tag off';t.textContent=cat.name;
+  t.style.background=catColor(cat.key);t.dataset.key=cat.key;
+  t.onclick=()=>setCat(cat.key);
+  $('m-cats').appendChild(t);
+});
+function renderPresets(catKey){
+  const box=$('m-presets');
+  box.innerHTML='';
+  (PRESETS[catKey]||[]).forEach(p=>{
+    const el=document.createElement('div');el.className='preset';
+    el.innerHTML=`<span>${p.i}</span>${p.t.replace('\n','')}`;
+    el.onclick=()=>{
+      state.days[editDay]={cat:curCat, icon:p.i, text:p.t};
+      modalbg.classList.remove('show');
+      render(); save();
+    };
+    box.appendChild(el);
+  });
+}
+function setCat(key){
+  curCat=key;
+  [...$('m-cats').children].forEach(t=>{
+    const on=t.dataset.key===key;
+    t.classList.toggle('off',!on);
+    t.style.borderColor=on?'#000':'transparent';
+  });
+  renderPresets(key);
+}
+
+let curCat='rest';
+function openEditor(day){
+  editDay=day;
+  const ev=state.days[day]||{};
+  $('m-daylabel').textContent=`${state.year}年${state.month}月${day}日（${WD[(firstWeekday(state.year,state.month)+day-1)%7]}）`;
+  setCat(ev.cat||'rest');
+  modalbg.classList.add('show');
+}
+$('m-cancel').onclick=()=>modalbg.classList.remove('show');
+modalbg.onclick=e=>{if(e.target===modalbg)modalbg.classList.remove('show');};
+$('m-delete').onclick=()=>{ delete state.days[editDay]; modalbg.classList.remove('show'); render(); save(); };
+
+/* ============ ダウンロード ============ */
+$('download').onclick=()=>{
+  modalbg.classList.remove('show');
+  render();
+  const a=document.createElement('a');
+  a.download=`schedule_${state.year}_${String(state.month).padStart(2,'0')}.png`;
+  a.href=cv.toDataURL('image/png');
+  a.click();
+};
+
+/* ============ 起動 ============ */
+syncInputs();
+render();
+</script>
+</body>
+</html>
