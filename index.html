@@ -89,12 +89,12 @@
   /* セッション選択グリッド */
   .session-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px;}
   .session-btn{
-    padding:16px 4px;border-radius:12px;border:2px solid var(--line);
+    padding:14px 4px;border-radius:12px;border:2px solid var(--line);
     background:#fff;font-size:15px;font-weight:700;cursor:pointer;
     color:var(--text);font-family:inherit;transition:.15s;text-align:center;
   }
-  .session-btn.on{background:#fcefe9;color:var(--accent);}
-  .session-btn.on{border-color:var(--accent);}
+  .session-btn.fullday{grid-column:1/-1;font-size:15px;padding:12px;}
+  .session-btn.on{background:#fcefe9;color:var(--accent);border-color:var(--accent);}
 
   .mobile-btns{display:none;}
 
@@ -227,18 +227,17 @@ const THEMES = [
   {name:'スカイ',     head:'#8fb6cc', accent:'#6fa3c0', soft:'#e8f1f6', text:'#3f4f5a', sun:'#cf8d86', sat:'#6f9fc0'},
   {name:'チャコール', head:'#6f6a64', accent:'#6f6a64', soft:'#eeece9', text:'#3a3631', sun:'#c98a84', sat:'#7e96c9'},
 ];
-const SESSIONS = ['朝','午前','午後','夜'];
+const SESSIONS = ['終日','朝','午前','午後','夜'];
 
 function sessionsToLines(sessions){
   if(!sessions||sessions.length===0) return ['休み'];
   const abbr={'朝':'朝','午前':'前','午後':'後','夜':'夜'};
+  // 終日
+  if(sessions.includes('終日')) return ['終日','休み'];
   // 2行（中央寄せ）
-  if(sessions.length===4) return ['終日','休み'];
   if(sessions.length===1) return [sessions[0],'休み'];
   // 3行
-  if(sessions.length===2){
-    return [sessions[0], sessions[1], '休み'];
-  }
+  if(sessions.length===2) return [sessions[0], sessions[1], '休み'];
   // 3セッション：先頭2つを略称で1行に
   return [
     sessions.slice(0,2).map(s=>abbr[s]).join('・'),
@@ -400,9 +399,9 @@ function render(){
       if(ev && ev.sessions && ev.sessions.length>0){
         const cc=catColor();
         const lines=sessionsToLines(ev.sessions);
-        const cx=x+cellW/2, cy=yy+cellH/2+12;
+        const cx=x+cellW/2, cy=yy+cellH/2+16;
         const rot=(((day*37+13)%11)-5)*0.032;
-        drawStamp(cx, cy, cellW*0.66, lines, cc, rot);
+        drawStamp(cx, cy, cellW*0.78, lines, cc, rot);
       }
     }
   }
@@ -475,7 +474,7 @@ function drawStamp(cx, cy, size, lines, color, rot){
   // テキスト
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
-  const fs = size * (lines.length >= 3 ? 0.22 : lines.length === 2 ? 0.3 : 0.38);
+  const fs = size * (lines.length >= 3 ? 0.26 : lines.length === 2 ? 0.34 : 0.42);
   ctx.font = `900 ${fs}px "Hiragino Sans",sans-serif`;
   const lh = fs * 1.22;
   const startY = -((lines.length - 1) * lh) / 2;
@@ -511,8 +510,28 @@ const modalbg=$('modalbg');
 // セッションボタン生成
 SESSIONS.forEach(s=>{
   const btn=document.createElement('button');
-  btn.className='session-btn'; btn.textContent=s; btn.dataset.session=s;
-  btn.onclick=()=>btn.classList.toggle('on');
+  const isFullday=(s==='終日');
+  btn.className='session-btn'+(isFullday?' fullday':'');
+  btn.textContent=isFullday?'終日（全て休み）':s;
+  btn.dataset.session=s;
+  btn.onclick=()=>{
+    btn.classList.toggle('on');
+    const on=btn.classList.contains('on');
+    if(isFullday && on){
+      // 終日→他を解除
+      [...$('m-sessions').children].forEach(b=>{
+        if(b!==btn) b.classList.remove('on');
+      });
+    } else if(!isFullday && on){
+      // 時間帯→終日を解除
+      [...$('m-sessions').children].forEach(b=>{
+        if(b.dataset.session==='終日') b.classList.remove('on');
+      });
+    }
+    [...$('m-sessions').children].forEach(b=>{
+      b.style.borderColor=b.classList.contains('on')?catColor():'';
+    });
+  };
   $('m-sessions').appendChild(btn);
 });
 
