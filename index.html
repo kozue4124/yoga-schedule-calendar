@@ -90,6 +90,8 @@
   .divider{height:1px;background:var(--line);margin:16px 0;}
   details summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight:600;margin-bottom:10px;}
 
+  .mobile-btns{display:none;}
+
   /* ===== モバイル対応 ===== */
   @media (max-width:700px){
     header{padding:10px 14px;}
@@ -117,6 +119,8 @@
     .preset{padding:8px 12px;font-size:14px;}
     .btn.primary{font-size:14px;padding:12px;}
     input[type=text],input[type=number],select,textarea{font-size:16px;} /* iOSズーム防止 */
+    .desktop-actions{display:none;}
+    .mobile-btns{display:flex;flex-direction:column;gap:10px;width:100%;padding-top:8px;}
   }
 </style>
 </head>
@@ -166,15 +170,22 @@
       <textarea id="footer" rows="2" placeholder="例）上記以外は通常通り開講しています。"></textarea>
     </div>
 
-    <button class="btn primary" id="download">📥 PNG画像をダウンロード</button>
-    <div style="height:10px"></div>
-    <button class="btn ghost" id="clear" style="width:100%">すべての予定をクリア</button>
-    <p class="hint">入力内容は自動的にこのブラウザに保存されます。</p>
+    <div class="desktop-actions">
+      <button class="btn primary" id="download">📥 PNG画像をダウンロード</button>
+      <div style="height:10px"></div>
+      <button class="btn ghost" id="clear" style="width:100%">すべての予定をクリア</button>
+      <p class="hint">入力内容は自動的にこのブラウザに保存されます。</p>
+    </div>
   </div>
 
   <!-- 右：プレビュー -->
   <div class="preview">
     <canvas id="cv"></canvas>
+    <div class="mobile-btns">
+      <button class="btn primary" id="download-mob">📥 PNG画像をダウンロード</button>
+      <button class="btn ghost" id="clear-mob" style="width:100%">すべての予定をクリア</button>
+      <p class="hint" style="text-align:center;margin-top:4px">入力内容は自動的にこのブラウザに保存されます。</p>
+    </div>
   </div>
 </div>
 
@@ -546,6 +557,8 @@ modalbg.onclick=e=>{if(e.target===modalbg)modalbg.classList.remove('show');};
 $('m-delete').onclick=()=>{ delete state.days[editDay]; modalbg.classList.remove('show'); render(); save(); };
 
 /* ============ ダウンロード ============ */
+$('download-mob').onclick=()=>$('download').click();
+$('clear-mob').onclick=()=>$('clear').click();
 $('download').onclick=()=>{
   modalbg.classList.remove('show');
   render();
