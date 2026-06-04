@@ -237,8 +237,14 @@ function sessionsToLines(sessions){
     // 2文字含む（午前・午後など）→ 3行
     return [sessions[0], sessions[1], '休み'];
   }
-  // 3セッション → 3行（1つ目を1行目、2〜3つ目を2行目）
+  // 3セッション → 3行
   if(sessions.length===3){
+    // 午前・午後が両方含まれる場合、午後の前で行を分ける
+    if(sessions.includes('午前') && sessions.includes('午後')){
+      const split=sessions.indexOf('午後');
+      return [sessions.slice(0,split).join('・'), sessions.slice(split).join('・'), '休み'];
+    }
+    // それ以外：1つ目を1行目、2〜3つ目を2行目
     return [sessions[0], sessions.slice(1).join('・'), '休み'];
   }
   return ['休み'];
