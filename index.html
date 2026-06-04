@@ -140,10 +140,6 @@
   <!-- 左：操作パネル -->
   <div class="controls">
     <div class="field">
-      <label>タイトル</label>
-      <input type="text" id="title" placeholder="例）5月 休講日のお知らせ">
-    </div>
-    <div class="field">
       <label>カレンダー設定</label>
       <div class="row">
         <input type="number" id="year" style="flex:1.2">
@@ -251,7 +247,6 @@ function sessionsToLines(sessions){
 const today = new Date();
 const curY = today.getFullYear(), curM = today.getMonth()+1;
 let state = load() || {
-  title: curM+'月 休講日のお知らせ',
   year: curY,
   month: curM,
   theme:0,
@@ -300,14 +295,12 @@ function syncCatColors(){
 }
 
 function syncInputs(){
-  $('title').value=state.title;
   $('year').value=state.year;
   $('month').value=state.month;
   $('footer').value=state.footer||'';
   syncSwatches();
   syncCatColors();
 }
-$('title').oninput=e=>{state.title=e.target.value;render();save();};
 $('year').oninput=e=>{state.year=+e.target.value;render();save();};
 $('month').onchange=e=>{state.month=+e.target.value;render();save();};
 $('footer').oninput=e=>{state.footer=e.target.value;render();save();};
@@ -353,7 +346,7 @@ function render(){
   ctx.fillStyle='#ffffff';
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.font='700 40px "Hiragino Sans",sans-serif';
-  ctx.fillText(state.title||'', W/2, pad+headerH/2-12);
+  ctx.fillText(`${m}月　休講日のお知らせ`, W/2, pad+headerH/2-12);
   ctx.font='600 22px "Hiragino Sans",sans-serif';
   ctx.fillStyle='rgba(255,255,255,.9)';
   ctx.fillText(`${y} / ${String(m).padStart(2,'0')}`, W/2, pad+headerH-26);
