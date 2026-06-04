@@ -381,12 +381,12 @@ function render(){
       // セル枠
       ctx.fillStyle = (day<1||day>dim) ? '#faf8f6' : '#ffffff';
       ctx.strokeStyle=th.soft; ctx.lineWidth=1.5;
-      roundRect(x+3,yy+3,cellW-6,cellH-6,12);
+      roundRect(x+7,yy+7,cellW-14,cellH-14,13);
       ctx.fill();ctx.stroke();
 
       if(day<1||day>dim) continue;
 
-      cellRects.push({day,x:x+3,y:yy+3,w:cellW-6,h:cellH-6});
+      cellRects.push({day,x:x+7,y:yy+7,w:cellW-14,h:cellH-14});
 
       const dow=(fw+day-1)%7;
       const ev=state.days[day];
@@ -403,19 +403,19 @@ function render(){
 
         // 背景（薄いカラー）
         ctx.fillStyle=hexA(cc,0.10);
-        roundRect(x+3,yy+3,cellW-6,cellH-6,16);ctx.fill();
+        roundRect(x+7,yy+7,cellW-14,cellH-14,13);ctx.fill();
 
         // 外枠（太め）
         ctx.strokeStyle=cc; ctx.lineWidth=5;
-        roundRect(x+3,yy+3,cellW-6,cellH-6,16);ctx.stroke();
+        roundRect(x+7,yy+7,cellW-14,cellH-14,13);ctx.stroke();
 
         // 内枠（細め・スタンプ風二重線）
         ctx.strokeStyle=hexA(cc,0.6); ctx.lineWidth=2;
-        roundRect(x+11,yy+11,cellW-22,cellH-22,11);ctx.stroke();
+        roundRect(x+15,yy+15,cellW-30,cellH-30,9);ctx.stroke();
 
         // テキスト（最大幅に合わせてフォントサイズを自動調整）
         const lines=sessionsToLines(ev.sessions);
-        const maxTextW=cellW-30; // 内枠の余白を確保
+        const maxTextW=cellW-38; // 内枠の余白を確保
         let fs=lines.length>=3?33:36;
         const widest=lines.reduce((a,b)=>a.length>=b.length?a:b);
         ctx.font=`900 ${fs}px "Hiragino Sans",sans-serif`;
