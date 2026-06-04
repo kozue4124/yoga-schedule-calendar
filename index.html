@@ -83,25 +83,18 @@
   }
   .modal h3{margin:0 0 4px;font-size:17px;}
   .modal .day-label{color:var(--muted);font-size:13px;margin-bottom:16px;}
-  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
-  .preset{
-    border:1px solid var(--line);background:#faf7f3;border-radius:20px;padding:7px 12px;
-    font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;
-  }
-  .preset:hover{background:#f1ebe3;border-color:var(--accent);}
-  .iconrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
-  .iconbtn{
-    width:42px;height:42px;font-size:22px;border:1px solid var(--line);border-radius:10px;
-    background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  }
-  .iconbtn.on{border-color:var(--accent);background:#fcefe9;}
-  .modal-actions{display:flex;gap:8px;margin-top:8px;}
+  .modal-actions{display:flex;gap:8px;margin-top:12px;}
   .modal-actions .btn{flex:1;}
-  .cat-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-  .cat-tag{padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer;border:2px solid transparent;color:#fff;font-weight:600;}
-  .cat-tag.off{opacity:.45;}
   .divider{height:1px;background:var(--line);margin:16px 0;}
-  details summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight:600;margin-bottom:10px;}
+  /* セッション選択グリッド */
+  .session-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px;}
+  .session-btn{
+    padding:16px 4px;border-radius:12px;border:2px solid var(--line);
+    background:#fff;font-size:15px;font-weight:700;cursor:pointer;
+    color:var(--text);font-family:inherit;transition:.15s;text-align:center;
+  }
+  .session-btn.on{background:#fcefe9;color:var(--accent);}
+  .session-btn.on{border-color:var(--accent);}
 
   .mobile-btns{display:none;}
 
@@ -167,10 +160,6 @@
       <label>休講カラー</label>
       <div class="swatches" id="sw-rest"></div>
     </div>
-    <div class="field">
-      <label>レッスンカラー</label>
-      <div class="swatches" id="sw-lesson"></div>
-    </div>
 
     <div class="divider" style="background:var(--line);height:1px;margin:18px 0;"></div>
 
@@ -217,15 +206,13 @@
     <h3 id="m-title">予定を入力</h3>
     <div class="day-label" id="m-daylabel"></div>
 
-    <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:8px;">カテゴリ</label>
-    <div class="cat-tags" id="m-cats"></div>
-
-    <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:8px;">スタンプを選んで追加</label>
-    <div class="presets" id="m-presets"></div>
+    <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:10px;">休みの時間帯を選択（複数可）</label>
+    <div class="session-grid" id="m-sessions"></div>
 
     <div class="modal-actions">
       <button class="btn ghost" id="m-delete">削除</button>
       <button class="btn ghost" id="m-cancel">キャンセル</button>
+      <button class="btn primary" id="m-save" style="flex:2">保存</button>
     </div>
   </div>
 </div>
@@ -240,27 +227,23 @@ const THEMES = [
   {name:'スカイ',     head:'#8fb6cc', accent:'#6fa3c0', soft:'#e8f1f6', text:'#3f4f5a', sun:'#cf8d86', sat:'#6f9fc0'},
   {name:'チャコール', head:'#6f6a64', accent:'#6f6a64', soft:'#eeece9', text:'#3a3631', sun:'#c98a84', sat:'#7e96c9'},
 ];
-const CATS = [
-  {key:'rest',   name:'休講',   color:'#d98a86'},
-  {key:'lesson', name:'レッスン',color:'#8fa57a'},
-];
-const PRESETS = {
-  rest: [
-    {t:'終日\n休み', i:'●'},
-    {t:'午前\n休み', i:'◐'},
-    {t:'午後\n休み', i:'◑'},
-    {t:'夕方\n休み', i:'◕'},
-    {t:'日中\n休み', i:'◎'},
-    {t:'お休み',    i:'✕'},
-  ],
-  lesson: [
-    {t:'朝\nのみ',  i:'◐'},
-    {t:'午前\nのみ',i:'○'},
-    {t:'お昼\nのみ',i:'●'},
-    {t:'午後\nのみ',i:'◑'},
-    {t:'夜\nのみ',  i:'◕'},
-  ],
-};
+const SESSIONS = ['朝','午前','午後','夜'];
+
+function sessionsToLines(sessions){
+  if(!sessions||sessions.length===0) return ['休み'];
+  if(sessions.length===4) return ['終日','休み'];
+  if(sessions.length===1) return [sessions[0],'休み'];
+  const abbr={'朝':'朝','午前':'前','午後':'後','夜':'夜'};
+  if(sessions.length===2){
+    const total=sessions.reduce((n,s)=>n+s.length,0);
+    // 1文字同士（朝・夜など）→ そのまま1行
+    if(total<=3) return [sessions.join('・'),'休み'];
+    // 2文字含む（午前・午後など）→ 略称で1行
+    return [sessions.map(s=>abbr[s]).join('・'),'休み'];
+  }
+  // 3セッション：略称で1行
+  return [sessions.map(s=>abbr[s]).join('・'),'休み'];
+}
 
 const today = new Date();
 const curY = today.getFullYear(), curM = today.getMonth()+1;
@@ -271,9 +254,9 @@ let state = load() || {
   theme:0,
   footer:'',
   days:{},
-  catColors:{rest:'#d98a86', lesson:'#8fa57a'}
+  catColors:{rest:'#d98a86'}
 };
-if(!state.catColors) state.catColors={rest:'#d98a86', lesson:'#8fa57a'};
+if(!state.catColors) state.catColors={rest:'#d98a86'};
 
 /* ============ 永続化 ============ */
 function save(){ localStorage.setItem('schedCal', JSON.stringify(state)); }
@@ -301,21 +284,16 @@ const COLOR_PALETTE=[
   '#d98a86','#e8a87c','#c4734d','#9e6b8a','#7a6bab','#5c8ab4',
   '#8fa57a','#6aab9e','#c4a96b','#b4a07a','#6f6a64','#9ab4c4'
 ];
-function catColor(key){ return state.catColors[key]||CATS.find(c=>c.key===key).color; }
-['rest','lesson'].forEach(key=>{
-  COLOR_PALETTE.forEach(col=>{
-    const s=document.createElement('div');s.className='swatch';
-    s.style.background=col;s.dataset.color=col;
-    s.onclick=()=>{ state.catColors[key]=col; syncCatColors(); render(); save(); };
-    $('sw-'+key).appendChild(s);
-  });
+function catColor(){ return state.catColors.rest||'#d98a86'; }
+COLOR_PALETTE.forEach(col=>{
+  const s=document.createElement('div');s.className='swatch';
+  s.style.background=col;s.dataset.color=col;
+  s.onclick=()=>{ state.catColors.rest=col; syncCatColors(); render(); save(); };
+  $('sw-rest').appendChild(s);
 });
 function syncCatColors(){
-  ['rest','lesson'].forEach(key=>{
-    const cur=catColor(key);
-    [...$('sw-'+key).children].forEach(s=>s.classList.toggle('on',s.dataset.color===cur));
-  });
-  [...$('m-cats').children].forEach(t=>t.style.background=catColor(t.dataset.key));
+  const cur=catColor();
+  [...$('sw-rest').children].forEach(s=>s.classList.toggle('on',s.dataset.color===cur));
 }
 
 function syncInputs(){
@@ -417,16 +395,9 @@ function render(){
       ctx.textBaseline='top';
       ctx.fillText(day, x+14, yy+12);
 
-      if(ev && (ev.text!==undefined)){
-        const cat=CATS.find(k=>k.key===ev.cat)||CATS[0];
-        const cc=catColor(cat.key);
-        // カテゴリ名（右下）
-        ctx.font='600 19px "Hiragino Sans",sans-serif';
-        ctx.fillStyle=cc;
-        ctx.textAlign='right';
-        ctx.textBaseline='bottom';
-        ctx.fillText(cat.name, x+cellW-10, yy+cellH-10);
-        const lines=ev.text.split('\n').filter(l=>l.trim());
+      if(ev && ev.sessions && ev.sessions.length>0){
+        const cc=catColor();
+        const lines=sessionsToLines(ev.sessions);
         const cx=x+cellW/2, cy=yy+cellH/2+12;
         const rot=(((day*37+13)%11)-5)*0.032;
         drawStamp(cx, cy, cellW*0.66, lines, cc, rot);
@@ -502,7 +473,7 @@ function drawStamp(cx, cy, size, lines, color, rot){
   // テキスト
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
-  const fs = size * (lines.length > 1 ? 0.3 : 0.36);
+  const fs = size * (lines.length >= 3 ? 0.25 : lines.length === 2 ? 0.3 : 0.36);
   ctx.font = `900 ${fs}px "Hiragino Sans",sans-serif`;
   const lh = fs * 1.22;
   const startY = -((lines.length - 1) * lh) / 2;
@@ -535,48 +506,47 @@ cv.addEventListener('click', e=>{
 let editDay=null;
 const modalbg=$('modalbg');
 
-// カテゴリ
-CATS.forEach(cat=>{
-  const t=document.createElement('div');t.className='cat-tag off';t.textContent=cat.name;
-  t.style.background=catColor(cat.key);t.dataset.key=cat.key;
-  t.onclick=()=>setCat(cat.key);
-  $('m-cats').appendChild(t);
+// セッションボタン生成
+SESSIONS.forEach(s=>{
+  const btn=document.createElement('button');
+  btn.className='session-btn'; btn.textContent=s; btn.dataset.session=s;
+  btn.onclick=()=>btn.classList.toggle('on');
+  $('m-sessions').appendChild(btn);
 });
-function renderPresets(catKey){
-  const box=$('m-presets');
-  box.innerHTML='';
-  (PRESETS[catKey]||[]).forEach(p=>{
-    const el=document.createElement('div');el.className='preset';
-    el.innerHTML=`<span>${p.i}</span>${p.t.replace('\n','')}`;
-    el.onclick=()=>{
-      state.days[editDay]={cat:curCat, icon:p.i, text:p.t};
-      modalbg.classList.remove('show');
-      render(); save();
-    };
-    box.appendChild(el);
-  });
-}
-function setCat(key){
-  curCat=key;
-  [...$('m-cats').children].forEach(t=>{
-    const on=t.dataset.key===key;
-    t.classList.toggle('off',!on);
-    t.style.borderColor=on?'#000':'transparent';
-  });
-  renderPresets(key);
+
+function getSelectedSessions(){
+  return [...$('m-sessions').children]
+    .filter(b=>b.classList.contains('on'))
+    .map(b=>b.dataset.session);
 }
 
-let curCat='rest';
 function openEditor(day){
   editDay=day;
   const ev=state.days[day]||{};
   $('m-daylabel').textContent=`${state.year}年${state.month}月${day}日（${WD[(firstWeekday(state.year,state.month)+day-1)%7]}）`;
-  setCat(ev.cat||'rest');
+  // 保存済みセッションを復元
+  const saved=ev.sessions||[];
+  [...$('m-sessions').children].forEach(b=>{
+    b.classList.toggle('on', saved.includes(b.dataset.session));
+    b.style.borderColor = b.classList.contains('on') ? catColor() : '';
+  });
   modalbg.classList.add('show');
 }
 $('m-cancel').onclick=()=>modalbg.classList.remove('show');
 modalbg.onclick=e=>{if(e.target===modalbg)modalbg.classList.remove('show');};
 $('m-delete').onclick=()=>{ delete state.days[editDay]; modalbg.classList.remove('show'); render(); save(); };
+$('m-save').onclick=()=>{
+  const sessions=getSelectedSessions();
+  if(sessions.length===0){ delete state.days[editDay]; }
+  else { state.days[editDay]={sessions}; }
+  modalbg.classList.remove('show'); render(); save();
+};
+// セッションボタンの選択色をカテゴリカラーに合わせる
+$('m-sessions').addEventListener('click',()=>{
+  [...$('m-sessions').children].forEach(b=>{
+    b.style.borderColor = b.classList.contains('on') ? catColor() : '';
+  });
+});
 
 /* ============ ダウンロード ============ */
 function doDownload(){
